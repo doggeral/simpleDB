@@ -17,6 +17,9 @@ import java.util.concurrent.ConcurrentHashMap;
  * @Threadsafe
  */
 public class Catalog {
+	Map<Integer, DbFile> dbFileMap;
+	Map<Integer, String> tableNameMap;
+	Map<Integer, String> primaryKeyMap;
 
     /**
      * Constructor.
@@ -24,6 +27,9 @@ public class Catalog {
      */
     public Catalog() {
         // some code goes here
+    	dbFileMap = new ConcurrentHashMap<Integer, DbFile>();
+    	tableNameMap = new ConcurrentHashMap<Integer, String>();
+    	primaryKeyMap = new ConcurrentHashMap<Integer, String>();
     }
 
     /**
@@ -37,6 +43,10 @@ public class Catalog {
      */
     public void addTable(DbFile file, String name, String pkeyField) {
         // some code goes here
+    	Integer id = file.getId();
+    	dbFileMap.put(id, file);
+    	tableNameMap.put(id, name);
+    	primaryKeyMap.put(id, pkeyField);
     }
 
     public void addTable(DbFile file, String name) {
@@ -60,7 +70,14 @@ public class Catalog {
      */
     public int getTableId(String name) throws NoSuchElementException {
         // some code goes here
-        return 0;
+    	for (Integer id : tableNameMap.keySet()) {
+    		String tableName = tableNameMap.get(id);
+    		if (tableName.equals(name)) {
+    			return id;
+    		}
+    	}
+        
+    	throw new NoSuchElementException("Can't find table by name: " + name);
     }
 
     /**
@@ -71,7 +88,13 @@ public class Catalog {
      */
     public TupleDesc getTupleDesc(int tableid) throws NoSuchElementException {
         // some code goes here
-        return null;
+    	DbFile dbFile = dbFileMap.get(tableid);
+    	
+    	if (dbFile == null) {
+    		throw new NoSuchElementException("Can't find dbfile by id: " + tableid);
+    	}
+    	
+        return dbFile.getTupleDesc();
     }
 
     /**
@@ -82,27 +105,36 @@ public class Catalog {
      */
     public DbFile getDatabaseFile(int tableid) throws NoSuchElementException {
         // some code goes here
-        return null;
+    	DbFile dbFile = dbFileMap.get(tableid);
+    	
+    	if (dbFile == null) {
+    		throw new NoSuchElementException("Can't find dbfile by id: " + tableid);
+    	}
+    	
+        return dbFile;
     }
 
     public String getPrimaryKey(int tableid) {
         // some code goes here
-        return null;
+        return primaryKeyMap.get(tableid);
     }
 
     public Iterator<Integer> tableIdIterator() {
         // some code goes here
-        return null;
+        return dbFileMap.keySet().iterator();
     }
 
     public String getTableName(int id) {
         // some code goes here
-        return null;
+        return tableNameMap.get(id);
     }
     
     /** Delete all tables from the catalog */
     public void clear() {
         // some code goes here
+    	dbFileMap = new ConcurrentHashMap<Integer, DbFile>();
+    	tableNameMap = new ConcurrentHashMap<Integer, String>();
+    	primaryKeyMap = new ConcurrentHashMap<Integer, String>();
     }
     
     /**
