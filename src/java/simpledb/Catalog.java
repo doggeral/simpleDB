@@ -17,9 +17,9 @@ import java.util.concurrent.ConcurrentHashMap;
  * @Threadsafe
  */
 public class Catalog {
-	Map<Integer, DbFile> dbFileMap;
-	Map<Integer, String> tableNameMap;
-	Map<Integer, String> primaryKeyMap;
+	private final Map<Integer, DbFile> dbFileMap;
+	private final Map<Integer, String> tableNameMap;
+	private final Map<Integer, String> primaryKeyMap;
 
     /**
      * Constructor.
@@ -132,9 +132,9 @@ public class Catalog {
     /** Delete all tables from the catalog */
     public void clear() {
         // some code goes here
-    	dbFileMap = new ConcurrentHashMap<Integer, DbFile>();
-    	tableNameMap = new ConcurrentHashMap<Integer, String>();
-    	primaryKeyMap = new ConcurrentHashMap<Integer, String>();
+    	dbFileMap.clear();
+    	tableNameMap.clear();
+    	primaryKeyMap.clear();
     }
     
     /**
