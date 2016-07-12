@@ -72,6 +72,10 @@ public class TupleDesc implements Serializable {
     		tdItemList.add(item);
     	}
     }
+    
+    public TupleDesc(List<TDItem> itemList) {
+    	this.tdItemList = itemList;
+    }
 
     /**
      * Constructor. Create a new tuple desc with typeAr.length fields with
