@@ -74,6 +74,11 @@ public class BufferPool {
         // some code goes here
     	Page page = pageMap.get(pid);
     	
+    	if (page == null) {
+    		page = Database.getCatalog().getDatabaseFile(pid.getTableId()).readPage(pid);
+    		this.pageMap.put(pid, page);
+    	}
+    	
         return page;
     }
 
