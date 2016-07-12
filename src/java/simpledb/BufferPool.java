@@ -25,6 +25,9 @@ public class BufferPool {
     other classes. BufferPool should use the numPages argument to the
     constructor instead. */
     public static final int DEFAULT_PAGES = 50;
+    
+    private ConcurrentHashMap<PageId, Page> pageMap;
+    private int numPages;
 
     /** TODO for Lab 4: create your private Lock Manager class. 
 	Be sure to instantiate it in the constructor. */
@@ -36,6 +39,8 @@ public class BufferPool {
      */
     public BufferPool(int numPages) {
         // some code goes here
+    	this.numPages = numPages;
+    	pageMap = new ConcurrentHashMap<PageId, Page>();
     }
     
     public static int getPageSize() {
@@ -67,7 +72,9 @@ public class BufferPool {
     public  Page getPage(TransactionId tid, PageId pid, Permissions perm)
         throws TransactionAbortedException, DbException {
         // some code goes here
-        return null;
+    	Page page = pageMap.get(pid);
+    	
+        return page;
     }
 
     /**
