@@ -107,7 +107,7 @@ public class SeqScan implements DbIterator {
     		Iterator<TDItem> iter = desc.iterator();
     		while (iter.hasNext()) {
     			TDItem item = iter.next();
-    			itemList.add(new TDItem(item.fieldType, this.tableAlias + "-" + item.fieldName));
+    			itemList.add(new TDItem(item.fieldType, this.tableAlias + "." + item.fieldName));
     		}
     	}
     	
