@@ -2,6 +2,7 @@ package simpledb;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -76,6 +77,10 @@ public class BufferPool {
     	
     	if (page == null) {
     		page = Database.getCatalog().getDatabaseFile(pid.getTableId()).readPage(pid);
+    		
+    		if (pageMap.size() > numPages) {
+    			this.evictPage();
+    		}
     		this.pageMap.put(pid, page);
     	}
     	
@@ -189,7 +194,13 @@ public class BufferPool {
     public synchronized void flushAllPages() throws IOException {
         // some code goes here
         // not necessary for lab1
-
+    	Set<PageId> keys = pageMap.keySet();
+    	
+    	for (PageId pageId : keys) {
+    		if (pageMap.get(pageId).isDirty() != null) {
+    			flushPage(pageId);
+    		}
+    	}
     }
 
     /** Remove the specific page id from the buffer pool.
@@ -209,6 +220,9 @@ public class BufferPool {
     private synchronized  void flushPage(PageId pid) throws IOException {
         // some code goes here
         // not necessary for lab1
+    	HeapFile dbFile = (HeapFile) Database.getCatalog().getDatabaseFile(pid.getTableId());
+    	Page page = pageMap.get(pid);
+    	dbFile.writePage(page);
     }
 
     /** Write all pages of the specified transaction to disk.
@@ -225,6 +239,22 @@ public class BufferPool {
     private synchronized  void evictPage() throws DbException {
         // some code goes here
         // not necessary for lab1
+    	Set<PageId> keys = pageMap.keySet();
+    	
+    	for (PageId pageId : keys) {
+    		if (pageMap.get(pageId).isDirty() != null) {
+    			try {
+					flushPage(pageId);
+				} catch (IOException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+    		}
+    		
+    		pageMap.remove(pageId);
+    		
+    		return;
+    	}
     }
 
 }
