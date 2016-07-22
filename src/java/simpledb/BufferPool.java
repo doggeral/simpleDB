@@ -2,6 +2,7 @@ package simpledb;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Random;
 import java.util.concurrent.ConcurrentHashMap;
@@ -146,6 +147,31 @@ public class BufferPool {
     public void transactionComplete(TransactionId tid, boolean commit) throws IOException {
 		// some code goes here
 		// not necessary for lab1|lab2
+//    	HashSet<PageId> pids = this.lockmgr.getAllPagesByTid(tid);
+//    	
+//    	for (PageId pid : pids) {
+//    		if (commit) {
+//    			this.flushPage(pid);
+//    		} else {
+//    			pages.put(pid, pages.get(pid).getBeforeImage());
+//    		}
+//    	}
+    	
+    	try {
+	        for (PageId pid : pages.keySet()) {
+	            if (pages.get(pid).isDirty() != null && pages.get(pid).isDirty().equals(tid)) {
+	                if (commit) {
+	                    flushPage(pid);
+	                } else {
+	                	pages.put(pid, pages.get(pid).getBeforeImage());
+	                }
+	            }
+	        }
+    	}catch (NullPointerException e){
+    		e.printStackTrace();
+    		System.exit(0);
+    	}
+    	
 		lockmgr.releaseAllLocks(tid, commit); // Added for Lab 4
     }
     
@@ -265,6 +291,11 @@ public class BufferPool {
     public synchronized  void flushPages(TransactionId tid) throws IOException {
 		// some code goes here
 		// not necessary for labs 1--4
+    	HashSet<PageId> pages = this.lockmgr.getAllPagesByTid(tid);
+    	
+    	for (PageId pid : pages) {
+    		this.flushPage(pid);
+    	}
     }
     
     /**
@@ -283,12 +314,12 @@ public class BufferPool {
 		try {
 		    Page p = pages.get(pid);
 		    if (p.isDirty() != null) { // this one is dirty, try to find first non-dirty
-			for (PageId pg : pages.keySet()) {
-			    if (pages.get(pg).isDirty() == null) {
-				pid = pg;
-				break;
-			    }
-			}
+				for (PageId pg : pages.keySet()) {
+				    if (pages.get(pg).isDirty() == null) {
+						pid = pg;
+						break;
+				    }
+				}
 		    }
 		    flushPage(pid);
 		} catch (IOException e) {

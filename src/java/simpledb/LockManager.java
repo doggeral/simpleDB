@@ -1,6 +1,8 @@
 package simpledb;
 
+import java.io.IOException;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -74,10 +76,17 @@ public class LockManager {
 	 * Release all locks corresponding to TransactionId tid. Check lab
 	 * description to make sure you clean up appropriately depending on whether
 	 * transaction commits or aborts
+	 * @throws IOException 
 	 */
-	public synchronized void releaseAllLocks(TransactionId tid, boolean commit) {
+	public synchronized void releaseAllLocks(TransactionId tid, boolean commit) throws IOException {
 		// some code here
-
+		HashSet<PageId> pids = this.getAllPagesByTid(tid);
+		
+		HashSet<PageId> cloneSet = (HashSet<PageId>) pids.clone();
+		
+		for (PageId pid : cloneSet) {
+			this.releaseLock(tid, pid);
+		}
 	}
 
 	/**
@@ -166,10 +175,17 @@ public class LockManager {
 		// some code here
 		if (shareLockMap.containsKey(pid)) {
 			shareLockMap.get(pid).remove(tid);
+			if (shareLockMap.get(pid).size() == 0) {
+				shareLockMap.remove(pid);
+			}
 		}
 		exclusiveLockMap.remove(pid);
 		if (transactionPageMap.containsKey(tid)) {
 			transactionPageMap.get(tid).remove(pid);
+			
+			if (transactionPageMap.get(tid).size() == 0) {
+				transactionPageMap.remove(tid);
+			}
 		}
 	}
 
@@ -197,6 +213,7 @@ public class LockManager {
 						add(tid);
 					}
 				});
+				
 			}
 
 		} else {
@@ -216,5 +233,9 @@ public class LockManager {
 		}
 
 		return true;
+	}
+	
+	public HashSet<PageId> getAllPagesByTid(TransactionId tid) {
+		return this.transactionPageMap.get(tid);
 	}
 }
