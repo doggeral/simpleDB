@@ -50,14 +50,14 @@ public class BufferPool {
     }
     
     public static int getPageSize() {
-	return pageSize;
+    	return pageSize;
     }
     
     /**
      * Helper: this should be used for testing only!!!
      */
     public static void setPageSize(int pageSize) {
-	BufferPool.pageSize = pageSize;
+    	BufferPool.pageSize = pageSize;
     }
     
     /**
@@ -124,9 +124,9 @@ public class BufferPool {
      * @param tid the ID of the transaction requesting the unlock
      */
     public void transactionComplete(TransactionId tid) throws IOException {
-	// some code goes here
-	// not necessary for lab1|lab2
-	transactionComplete(tid,true); // Added for Lab 4
+		// some code goes here
+		// not necessary for lab1|lab2
+		transactionComplete(tid,true); // Added for Lab 4
     }
     
     /** Return true if the specified transaction has a lock on the specified page */
@@ -143,11 +143,10 @@ public class BufferPool {
      * @param tid the ID of the transaction requesting the unlock
      * @param commit a flag indicating whether we should commit or abort
      */
-    public void transactionComplete(TransactionId tid, boolean commit)
-	throws IOException {
-	// some code goes here
-	// not necessary for lab1|lab2
-	lockmgr.releaseAllLocks(tid, commit); // Added for Lab 4
+    public void transactionComplete(TransactionId tid, boolean commit) throws IOException {
+		// some code goes here
+		// not necessary for lab1|lab2
+		lockmgr.releaseAllLocks(tid, commit); // Added for Lab 4
     }
     
     /**
@@ -164,33 +163,32 @@ public class BufferPool {
      * @param tableId the table to add the tuple to
      * @param t the tuple to add
      */
-    public void insertTuple(TransactionId tid, int tableId, Tuple t)
-	throws DbException, IOException, TransactionAbortedException {
-	// some code goes here
-	// not necessary for lab1
-	
-	DbFile file = Database.getCatalog().getDatabaseFile(tableId);
-	
-	// let the specific implementation of the file decide which page to add it to
-	ArrayList<Page> dirtypages = file.insertTuple(tid, t);
-	
-	synchronized(this) {
-	    for (Page p : dirtypages){
-		p.markDirty(true, tid);
+    public void insertTuple(TransactionId tid, int tableId, Tuple t) throws DbException, IOException, TransactionAbortedException {
+		// some code goes here
+		// not necessary for lab1
 		
-		// if page in pool already, done.
-		if(pages.get(p.getId()) != null) {
-		    //replace old page with new one in case insertTuple returns a new copy of the page
-		    pages.put(p.getId(), p);
+		DbFile file = Database.getCatalog().getDatabaseFile(tableId);
+		
+		// let the specific implementation of the file decide which page to add it to
+		ArrayList<Page> dirtypages = file.insertTuple(tid, t);
+		
+		synchronized(this) {
+		    for (Page p : dirtypages){
+			p.markDirty(true, tid);
+			
+			// if page in pool already, done.
+			if(pages.get(p.getId()) != null) {
+			    //replace old page with new one in case insertTuple returns a new copy of the page
+			    pages.put(p.getId(), p);
+			}
+			else {
+			    // put page in pool
+			    if(pages.size() >= numPages)
+				evictPage();
+			    pages.put(p.getId(), p);
+			}
+		    }
 		}
-		else {
-		    // put page in pool
-		    if(pages.size() >= numPages)
-			evictPage();
-		    pages.put(p.getId(), p);
-		}
-	    }
-	}
     }
     
     /**
@@ -205,19 +203,18 @@ public class BufferPool {
      * @param tid the transaction deleting the tuple.
      * @param t the tuple to delete
      */
-    public  void deleteTuple(TransactionId tid, Tuple t)
-	throws DbException, IOException, TransactionAbortedException {
-	// some code goes here
-	// not necessary for lab1
-	
-	DbFile file = Database.getCatalog().getDatabaseFile(t.getRecordId().getPageId().getTableId());
-	ArrayList<Page> dirtypages = file.deleteTuple(tid, t);
-	
-	synchronized(this) {
-	    for (Page p : dirtypages){
-		p.markDirty(true, tid);
-	    }
-	}
+    public  void deleteTuple(TransactionId tid, Tuple t) throws DbException, IOException, TransactionAbortedException {
+		// some code goes here
+		// not necessary for lab1
+		
+		DbFile file = Database.getCatalog().getDatabaseFile(t.getRecordId().getPageId().getTableId());
+		ArrayList<Page> dirtypages = file.deleteTuple(tid, t);
+		
+		synchronized(this) {
+		    for (Page p : dirtypages){
+		    	p.markDirty(true, tid);
+		    }
+		}
     }
     
     /**
@@ -226,12 +223,13 @@ public class BufferPool {
      *     break simpledb if running in NO STEAL mode.
      */
     public synchronized void flushAllPages() throws IOException {
-	// some code goes here
-	// not necessary for lab1
-	
-	Iterator<PageId> i = pages.keySet().iterator();
-	while(i.hasNext())
-	    flushPage(i.next());
+		// some code goes here
+		// not necessary for lab1
+		
+		Iterator<PageId> i = pages.keySet().iterator();
+		while(i.hasNext()) {
+		    flushPage(i.next());
+		}
 	
     }
     
@@ -241,8 +239,8 @@ public class BufferPool {
         cache.
     */
     public synchronized void discardPage(PageId pid) {
-	// some code goes here
-	// not necessary for labs 1--4
+		// some code goes here
+		// not necessary for labs 1--4
     }
     
     /**
@@ -250,23 +248,23 @@ public class BufferPool {
      * @param pid an ID indicating the page to flush
      */
     private synchronized  void flushPage(PageId pid) throws IOException {
-	// some code goes here
-	// not necessary for lab1
-	
-	Page p = pages.get(pid);
-	if (p == null)
-	    return; //not in buffer pool -- doesn't need to be flushed
-	
-	DbFile file = Database.getCatalog().getDatabaseFile(pid.getTableId());
-	file.writePage(p);
-	p.markDirty(false, null);
+		// some code goes here
+		// not necessary for lab1
+		
+		Page p = pages.get(pid);
+		if (p == null)
+		    return; //not in buffer pool -- doesn't need to be flushed
+		
+		DbFile file = Database.getCatalog().getDatabaseFile(pid.getTableId());
+		file.writePage(p);
+		p.markDirty(false, null);
     }
     
     /** Write all pages of the specified transaction to disk.
      */
     public synchronized  void flushPages(TransactionId tid) throws IOException {
-	// some code goes here
-	// not necessary for labs 1--4
+		// some code goes here
+		// not necessary for labs 1--4
     }
     
     /**
@@ -274,30 +272,28 @@ public class BufferPool {
      * Flushes the page to disk to ensure dirty pages are updated on disk.
      */
     private synchronized  void evictPage() throws DbException {
-	// some code goes here
-	// not necessary for lab1
-	
-	// try to evict a random page, focusing first on finding one that is not dirty
-	// currently does not check for pages with uncommitted xacts, which could impact future labs
-	Object pids[] = pages.keySet().toArray();
-	PageId pid = (PageId) pids[random.nextInt(pids.length)];
-	
-	try {
-	    Page p = pages.get(pid);
-	    if (p.isDirty() != null) { // this one is dirty, try to find first non-dirty
-		for (PageId pg : pages.keySet()) {
-		    if (pages.get(pg).isDirty() == null) {
-			pid = pg;
-			break;
+		// some code goes here
+		// not necessary for lab1
+		
+		// try to evict a random page, focusing first on finding one that is not dirty
+		// currently does not check for pages with uncommitted xacts, which could impact future labs
+		Object pids[] = pages.keySet().toArray();
+		PageId pid = (PageId) pids[random.nextInt(pids.length)];
+		
+		try {
+		    Page p = pages.get(pid);
+		    if (p.isDirty() != null) { // this one is dirty, try to find first non-dirty
+			for (PageId pg : pages.keySet()) {
+			    if (pages.get(pg).isDirty() == null) {
+				pid = pg;
+				break;
+			    }
+			}
 		    }
+		    flushPage(pid);
+		} catch (IOException e) {
+		    throw new DbException("could not evict page");
 		}
-	    }
-	    flushPage(pid);
-	} catch (IOException e) {
-	    throw new DbException("could not evict page");
+		pages.remove(pid);
 	}
-	pages.remove(pid);
-    }
-    
-
 }
