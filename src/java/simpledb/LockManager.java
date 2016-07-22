@@ -82,6 +82,10 @@ public class LockManager {
 		// some code here
 		HashSet<PageId> pids = this.getAllPagesByTid(tid);
 		
+		if (pids == null) {
+			return;
+		}
+		
 		HashSet<PageId> cloneSet = (HashSet<PageId>) pids.clone();
 		
 		for (PageId pid : cloneSet) {
