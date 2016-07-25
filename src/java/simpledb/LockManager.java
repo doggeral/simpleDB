@@ -3,6 +3,7 @@ package simpledb;
 import java.io.IOException;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -20,7 +21,7 @@ public class LockManager {
 	private ConcurrentHashMap<PageId, HashSet<TransactionId>> shareLockMap;
 	private ConcurrentHashMap<TransactionId, HashSet<TransactionId>> waitList;
 	private ConcurrentHashMap<TransactionId, HashSet<PageId>> transactionPageMap;
-
+	
 	/**
 	 * Sets up the lock manager to keep track of page-level locks for
 	 * transactions Should initialize state required for the lock table data
@@ -48,12 +49,14 @@ public class LockManager {
 	 */
 	@SuppressWarnings("unchecked")
 	public boolean acquireLock(TransactionId tid, PageId pid, Permissions perm)
-			throws Exception {
+			throws DeadlockException {
 
 		while (!lock(tid, pid, perm)) { // keep trying to get the lock
 			synchronized (this) {
 				// some code here for Exercise 5, deadlock detection
-
+				if (checkCycle(tid)) {
+					throw new DeadlockException();
+				}
 			}
 
 			try {
@@ -67,6 +70,8 @@ public class LockManager {
 		synchronized (this) {
 			// for Exercise 5, might need some cleanup on deadlock detection
 			// data structure
+			this.waitList.remove(tid);
+			
 		}
 
 		return true;
@@ -144,6 +149,16 @@ public class LockManager {
 			}
 
 			if (exclusiveLockMap.containsKey(pid)) {
+				TransactionId lockTid = exclusiveLockMap.get(pid);
+				
+				if (this.waitList.containsKey(lockTid)) {
+					waitList.get(lockTid).add(tid);
+				} else {
+					waitList.put(lockTid, new HashSet<TransactionId>() {
+						{add(tid);}
+					});
+				}
+				
 				return true;
 			}
 
@@ -155,8 +170,31 @@ public class LockManager {
 			}
 
 			if (exclusiveLockMap.containsKey(pid)
-					&& !exclusiveLockMap.get(pid).equals(tid)
-					|| shareLockMap.containsKey(pid)) {
+					&& !exclusiveLockMap.get(pid).equals(tid)) {
+				TransactionId lockTid = exclusiveLockMap.get(pid);
+				
+				if (this.waitList.containsKey(lockTid)) {
+					waitList.get(lockTid).add(tid);
+				} else {
+					waitList.put(lockTid, new HashSet<TransactionId>() {
+						{add(tid);}
+					});
+				}
+				
+				return true;
+			}
+			
+			if (shareLockMap.containsKey(pid)) {
+				for (TransactionId id : transactionList) {
+					if (this.waitList.containsKey(id)) {
+						waitList.get(id).add(tid);
+					} else {
+						waitList.put(id, new HashSet<TransactionId>() {
+							{add(tid);}
+						});
+					}
+				}
+				
 				return true;
 			}
 
@@ -235,8 +273,36 @@ public class LockManager {
 				}
 			});
 		}
+		
+		//this.waitList.remove(tid);
 
 		return true;
+	}
+	
+	
+	private boolean checkCycle(TransactionId tid) {
+		HashSet<TransactionId> visited = new HashSet<TransactionId>();
+		LinkedList<TransactionId> queue = new LinkedList<TransactionId>();
+
+		queue.add(tid);
+
+		while (!(queue.isEmpty())) {
+			TransactionId cur = queue.remove();
+			if (visited.contains(cur)) {
+				return true;
+			}
+
+			visited.add(cur);
+
+			if (this.waitList.containsKey(cur) && !(this.waitList.get(cur).isEmpty())) {
+				Iterator<TransactionId> it = this.waitList.get(cur).iterator();
+				while (it.hasNext()) {
+					queue.add(it.next());
+				}
+			}
+		}
+
+		return false;
 	}
 	
 	public HashSet<PageId> getAllPagesByTid(TransactionId tid) {
