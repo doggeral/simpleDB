@@ -161,6 +161,8 @@ public class BufferPool {
 	        for (PageId pid : pages.keySet()) {
 	            if (pages.get(pid).isDirty() != null && pages.get(pid).isDirty().equals(tid)) {
 	                if (commit) {
+	                	Page p = pages.get(pid);
+	                	
 	                    flushPage(pid);
 	                } else {
 	                	pages.put(pid, pages.get(pid).getBeforeImage());
@@ -281,9 +283,21 @@ public class BufferPool {
 		if (p == null)
 		    return; //not in buffer pool -- doesn't need to be flushed
 		
+		// append an update record to the log, with 
+        // a before-image and after-image.
+        TransactionId dirtier = p.isDirty();
+        if (dirtier != null){
+          Database.getLogFile().logWrite(dirtier, p.getBeforeImage(), p);
+          Database.getLogFile().force();
+        }
+		
 		DbFile file = Database.getCatalog().getDatabaseFile(pid.getTableId());
 		file.writePage(p);
 		p.markDirty(false, null);
+		
+		// use current page contents as the before-image
+        // for the next transaction that modifies this page.
+        p.setBeforeImage();
     }
     
     /** Write all pages of the specified transaction to disk.
