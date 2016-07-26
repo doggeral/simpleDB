@@ -269,6 +269,7 @@ public class BufferPool {
     public synchronized void discardPage(PageId pid) {
 		// some code goes here
 		// not necessary for labs 1--4
+    	this.pages.remove(pid);
     }
     
     /**

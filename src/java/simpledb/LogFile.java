@@ -467,6 +467,42 @@ public class LogFile {
             synchronized(this) {
                 preAppend();
                 // some code goes here
+                
+                Long offset = this.tidToFirstLogRecord.get(tid.getId());
+                
+                raf.seek(offset);
+                
+                Set<PageId> updatedPage = new HashSet<PageId>();
+                for (; this.raf.getFilePointer() < this.raf.length(); ) {
+                	int type = raf.readInt();
+                	long transactionId = raf.readLong();
+                	
+                	if (type == this.UPDATE_RECORD) {
+                		Page oldPage = this.readPageData(raf);
+            			Page newPage = this.readPageData(raf);
+                		if (tid.getId() == transactionId && !updatedPage.contains(oldPage.getId())) {
+							Database.getCatalog()
+									.getDatabaseFile(
+											oldPage.getId().getTableId())
+									.writePage(oldPage);
+							
+							Database.getBufferPool().discardPage(oldPage.getId());
+							
+							updatedPage.add(oldPage.getId());
+                		}
+                		
+                	} else if (type == this.CHECKPOINT_RECORD) {
+                		int count = raf.readInt();
+                		
+                		for (int i=0; i< count; i++) {
+                			raf.readLong();
+                			raf.readLong();
+                		}
+                	}
+                	
+                	raf.readLong();
+                	
+                }
             }
         }
     }
